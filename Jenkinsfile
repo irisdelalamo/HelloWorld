@@ -1,60 +1,40 @@
-pipeline
-{
-    agent 
-    {
-        node 
-		{
-            label 'slave-azure' 
+pipeline {
+    agent {
+        docker 
+	{
+            image 'azagramac/maven'
+            args '-v /root/.m2:/root/.m2'
         }
     }
-
-    stages
+    stages 
     {
-		stage ('HelloWorld') 
+        stage('Build') 
+	{
+            steps 
+	    {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') 
+	{
+            steps 
+	    {
+                sh 'mvn test'
+            }
+            post 
+	    {
+                always 
 		{
-			agent
-			{
-			 	docker { image 'idelala1/prueba' }
-			}
-			steps
-			{
-				echo 'Hello World'
-			}
-			post
-			{
-				success
-				{
-					echo 'Se ha saludado correctamente'
-				}
-				failure
-				{
-					echo 'Se ha producido error en el saludo'
-				}
-			}
-		}
-		
-		stage ('MVN compile')
-		{
-			agent
-			{
-				docker { image 'idelala1/prueba' }
-			}
-			steps
-			{
-				script { libreria.compile 'prueba' }
-			}
-			post
-			{
-				success
-				{
-					echo 'Se ha descargado el repositorio'
-				}
-				failure
-				{
-					echo 'Se ha producido error en el saludo'
-				}
-			}
-		}
-
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+        stage('Deliver') 
+	{
+            steps 
+	    {
+                sh './jenkins/scripts/deliver.sh'
+            }
+        }
     }
 }
